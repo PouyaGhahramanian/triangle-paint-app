@@ -1,10 +1,13 @@
 (function() {
 
   let triangles = [];
+  let drawingHistory = [];
   let lastX = null;
   let lastY = null;
   let useInterpolation = true; // By default, interpolation is enabled
-
+  let temporaryTriangles = [];  
+  let sessionTriangles = [];
+  let poppedTriangles = []
   const gridSize = 0.05; // This will create a grid where each cell is 0.05 units in size.
 
   const canvas = document.getElementById('paintCanvas');
@@ -60,12 +63,17 @@
 
   canvas.addEventListener('mousedown', () => {
       isDrawing = true;
+	  temporaryTriangles = []
   });
 
   canvas.addEventListener('mouseup', () => {
       isDrawing = false;
       lastX = null;
       lastY = null;
+	  
+	  sessionTriangles.push([...temporaryTriangles]);
+      temporaryTriangles = [];
+      renderAllTriangles();
   });
 
   canvas.addEventListener('mousemove', draw);
@@ -118,12 +126,18 @@
               ]);
           }
       }
-
+	  
       triangles.push({
         vertices: triangleVertices,
         color: [...currentColor]
       });
-      renderAllTriangles();
+	  
+	  temporaryTriangles.push({
+        vertices: triangleVertices,
+        color: [...currentColor]
+      });
+	  renderAllTriangles();  
+      
   }
 
   function bresenhamLine(x1, y1, x2, y2) {
@@ -158,83 +172,59 @@
       return points;
   }
 
-  function interpolateAndDraw(x1, y1, x2, y2) {
-      const points = bresenhamLine(x1, y1, x2, y2);
-      for (const point of points) {
-          drawTriangle(point.x, point.y);
-      }
-      renderAllTriangles();
+  function undo(){
+	  if (sessionTriangles.length > 0) {
+        const tmpTriangle = sessionTriangles.pop();
+		poppedTriangles.push(tmpTriangle)
+        renderAllTriangles();  
+    }
   }
-
-  function drawTriangle(x, y) {
-      // Determine the top-left corner of the square
-      const startX = Math.floor(x / gridSize) * gridSize;
-      const startY = Math.floor(y / gridSize) * gridSize;
-
-      // Determine the relative position of the mouse within the square
-      const relX = x - startX;
-      const relY = y - startY;
-
-      let triangleVertices;
-
-      // Determine which triangle the mouse is in based on its relative position
-      if (relY < relX && relY + relX < gridSize) {
-          // Top triangle
-          triangleVertices = new Float32Array([
-              startX, startY,
-              startX + gridSize, startY,
-              startX + gridSize / 2, startY + gridSize / 2
-          ]);
-      } else if (relY > relX && relY + relX < gridSize) {
-          // Left triangle
-          triangleVertices = new Float32Array([
-              startX, startY,
-              startX, startY + gridSize,
-              startX + gridSize / 2, startY + gridSize / 2
-          ]);
-      } else if (relY < relX && relY + relX > gridSize) {
-          // Right triangle
-          triangleVertices = new Float32Array([
-              startX + gridSize, startY,
-              startX + gridSize, startY + gridSize,
-              startX + gridSize / 2, startY + gridSize / 2
-          ]);
-      } else {
-          // Bottom triangle
-          triangleVertices = new Float32Array([
-              startX, startY + gridSize,
-              startX + gridSize, startY + gridSize,
-              startX + gridSize / 2, startY + gridSize / 2
-          ]);
-      }
-
-      triangles.push({
-        vertices: triangleVertices,
-        color: [...currentColor]
-      });
+  function redo(){
+	  if (poppedTriangles.length > 0) {
+		  const tmpTriangle_2 = poppedTriangles.pop()
+		  sessionTriangles.push(tmpTriangle_2)
+		  renderAllTriangles();  
+	  }
   }
-
   function renderAllTriangles() {
       // Clear the canvas before drawing
       gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
       gl.clear(gl.COLOR_BUFFER_BIT);
+	  
+	  for (let triangle of temporaryTriangles) {
+		  // Set the color uniform for the current triangle
+		  gl.uniform4f(colorLocation, ...triangle.color);
 
-      for (let triangle of triangles) {
-          // Set the color uniform for the current triangle
-          gl.uniform4f(colorLocation, ...triangle.color);
+		  const buffer = gl.createBuffer();
+		  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		  gl.bufferData(gl.ARRAY_BUFFER, triangle.vertices, gl.STATIC_DRAW);
 
-          const buffer = gl.createBuffer();
-          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-          gl.bufferData(gl.ARRAY_BUFFER, triangle.vertices, gl.STATIC_DRAW);
+		  const position = gl.getAttribLocation(program, 'position');
+		  gl.enableVertexAttribArray(position);
+		  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-          const position = gl.getAttribLocation(program, 'position');
-          gl.enableVertexAttribArray(position);
-          gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+		  gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
+	  }
+  
+	  
+	  for (const session of sessionTriangles) {
+		  for (let triangle of session) {
+			  // Set the color uniform for the current triangle
+			  gl.uniform4f(colorLocation, ...triangle.color);
 
-          gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
-      }
+			  const buffer = gl.createBuffer();
+			  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			  gl.bufferData(gl.ARRAY_BUFFER, triangle.vertices, gl.STATIC_DRAW);
+
+			  const position = gl.getAttribLocation(program, 'position');
+			  gl.enableVertexAttribArray(position);
+			  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+			  gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
+		  }
+	  }
+	  
   }
-
   function toggleInterpolation() {
       useInterpolation = !useInterpolation;
       alert(`Interpolation is now ${useInterpolation ? 'enabled' : 'disabled'}.`);
@@ -248,8 +238,8 @@
   function changeColor(color) {
       currentColor = color;
   }
-
-
+  
+  window.redo = redo;
+  window.undo = undo;
   window.changeColor = changeColor;
-
 })();
