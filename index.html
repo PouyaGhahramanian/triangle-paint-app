@@ -3,10 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Triangle Paint App</title>
+    <title>CS465/575 Assignment 1: 2D Paint Application With Triangles</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <canvas id="paintCanvas" width="900" height="900"></canvas>
+    <div id="colorPicker">
+        <!-- <button onclick="toggleInterpolation()">Toggle Interpolation</button> -->
+        <button onclick="changeColor([1.0, 0.0, 0.0, 1.0])" style="background-color: red;">Red</button>
+        <button onclick="changeColor([0.0, 1.0, 0.0, 1.0])" style="background-color: green;">Green</button>
+        <button onclick="changeColor([0.0, 0.0, 1.0, 1.0])" style="background-color: blue;">Blue</button>
+        <button onclick="changeColor([1.0, 1.0, 0.0, 1.0])" style="background-color: yellow;">Yellow</button>
+        <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" style="background-color: cyan;">Cyan</button>
+        <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" style="background-color: magenta;">Magenta</button>
+    </div>
     <script src="app.js"></script>
 </body>
 </html>

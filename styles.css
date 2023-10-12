@@ -1,0 +1,21 @@
+/* Styles for the entire body of the page */
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Center content vertically */
+    background-color: #f4f4f4; /* Optional: Set a background color for the entire page */
+}
+
+/* Styles for the canvas */
+#paintCanvas {
+    border: 2px solid #333; /* Set a 2px solid border with a color of your choice */
+    margin-bottom: 20px; /* Optional: Add some space between the canvas and the color picker */
+}
+
+/* Center the buttons in the color picker */
+#colorPicker {
+    text-align: center;
+}

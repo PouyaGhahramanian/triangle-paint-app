@@ -3,6 +3,7 @@
   let triangles = [];
   let lastX = null;
   let lastY = null;
+  let useInterpolation = true; // By default, interpolation is enabled
 
   const gridSize = 0.05; // This will create a grid where each cell is 0.05 units in size.
 
@@ -118,7 +119,10 @@
           }
       }
 
-      triangles.push(triangleVertices);
+      triangles.push({
+        vertices: triangleVertices,
+        color: [...currentColor]
+      });
       renderAllTriangles();
   }
 
@@ -163,45 +167,51 @@
   }
 
   function drawTriangle(x, y) {
-      const snappedX = Math.floor(x / gridSize) * gridSize;
-      const snappedY = Math.floor(y / gridSize) * gridSize;
+      // Determine the top-left corner of the square
+      const startX = Math.floor(x / gridSize) * gridSize;
+      const startY = Math.floor(y / gridSize) * gridSize;
 
-      const relativeX = x - snappedX;
-      const relativeY = y - snappedY;
+      // Determine the relative position of the mouse within the square
+      const relX = x - startX;
+      const relY = y - startY;
 
       let triangleVertices;
 
-      if (relativeX + relativeY < gridSize) {
-          if (relativeX > relativeY) {
-              triangleVertices = new Float32Array([
-                  snappedX + gridSize, snappedY,
-                  snappedX, snappedY,
-                  snappedX + gridSize, snappedY + gridSize
-              ]);
-          } else {
-              triangleVertices = new Float32Array([
-                  snappedX, snappedY + gridSize,
-                  snappedX, snappedY,
-                  snappedX + gridSize, snappedY + gridSize
-              ]);
-          }
+      // Determine which triangle the mouse is in based on its relative position
+      if (relY < relX && relY + relX < gridSize) {
+          // Top triangle
+          triangleVertices = new Float32Array([
+              startX, startY,
+              startX + gridSize, startY,
+              startX + gridSize / 2, startY + gridSize / 2
+          ]);
+      } else if (relY > relX && relY + relX < gridSize) {
+          // Left triangle
+          triangleVertices = new Float32Array([
+              startX, startY,
+              startX, startY + gridSize,
+              startX + gridSize / 2, startY + gridSize / 2
+          ]);
+      } else if (relY < relX && relY + relX > gridSize) {
+          // Right triangle
+          triangleVertices = new Float32Array([
+              startX + gridSize, startY,
+              startX + gridSize, startY + gridSize,
+              startX + gridSize / 2, startY + gridSize / 2
+          ]);
       } else {
-          if (relativeX > relativeY) {
-              triangleVertices = new Float32Array([
-                  snappedX + gridSize, snappedY + gridSize,
-                  snappedX, snappedY + gridSize,
-                  snappedX + gridSize, snappedY
-              ]);
-          } else {
-              triangleVertices = new Float32Array([
-                  snappedX, snappedY,
-                  snappedX + gridSize, snappedY,
-                  snappedX, snappedY + gridSize
-              ]);
-          }
+          // Bottom triangle
+          triangleVertices = new Float32Array([
+              startX, startY + gridSize,
+              startX + gridSize, startY + gridSize,
+              startX + gridSize / 2, startY + gridSize / 2
+          ]);
       }
 
-      triangles.push(triangleVertices);
+      triangles.push({
+        vertices: triangleVertices,
+        color: [...currentColor]
+      });
   }
 
   function renderAllTriangles() {
@@ -209,19 +219,37 @@
       gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      for (let triangleVertices of triangles) {
+      for (let triangle of triangles) {
+          // Set the color uniform for the current triangle
+          gl.uniform4f(colorLocation, ...triangle.color);
+
           const buffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-          gl.bufferData(gl.ARRAY_BUFFER, triangleVertices, gl.STATIC_DRAW);
+          gl.bufferData(gl.ARRAY_BUFFER, triangle.vertices, gl.STATIC_DRAW);
 
           const position = gl.getAttribLocation(program, 'position');
           gl.enableVertexAttribArray(position);
           gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-          gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
+          gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
       }
   }
 
+  function toggleInterpolation() {
+      useInterpolation = !useInterpolation;
+      alert(`Interpolation is now ${useInterpolation ? 'enabled' : 'disabled'}.`);
+  }
+
+  let currentColor = [0.0, 0.0, 1.0, 1.0]; // Default to red
+
   const colorLocation = gl.getUniformLocation(program, 'color');
-  gl.uniform4f(colorLocation, 1.0, 0.0, 0.0, 1.0); // Red color
+  gl.uniform4f(colorLocation, 0.0, 0.0, 1.0, 1.0); // Red color
+
+  function changeColor(color) {
+      currentColor = color;
+  }
+
+
+  window.changeColor = changeColor;
+
 })();
