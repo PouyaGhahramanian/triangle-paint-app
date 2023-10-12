@@ -8,6 +8,8 @@
   let temporaryTriangles = [];  
   let sessionTriangles = [];
   let poppedTriangles = []
+  let isErase= false;
+  let isErase_2 = false;
   const gridSize = 0.05; // This will create a grid where each cell is 0.05 units in size.
 
   const canvas = document.getElementById('paintCanvas');
@@ -62,12 +64,22 @@
   let isDrawing = false;
 
   canvas.addEventListener('mousedown', () => {
-      isDrawing = true;
+	  if(isErase_2 === true){
+		  isErase = true;
+		  isDrawing = false;
+	  }
+	  else{
+		  isDrawing = true;
+		  isErase = false;
+		  isErase_2 = false;
+	  }
 	  temporaryTriangles = []
   });
 
   canvas.addEventListener('mouseup', () => {
       isDrawing = false;
+	  isErase = false;
+	  isErase_2 = false;
       lastX = null;
       lastY = null;
 	  
@@ -77,6 +89,7 @@
   });
 
   canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mousemove', erase);
 
   function draw(event) {
       if (!isDrawing) return;
@@ -139,7 +152,81 @@
 	  renderAllTriangles();  
       
   }
+  function erase(event) {
+      if (!isErase) return;
 
+      const rect = canvas.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / canvas.width) * 2 - 1;
+      const y = ((event.clientY - rect.top) / canvas.height) * -2 + 1;
+
+      const snappedX = Math.floor(x / gridSize) * gridSize;
+      const snappedY = Math.floor(y / gridSize) * gridSize;
+
+      const relativeX = x - snappedX;
+      const relativeY = y - snappedY;
+
+      let triangleVertices;
+
+      if (relativeX + relativeY < gridSize) {
+          if (relativeX > relativeY) {
+              // Bottom-right triangle
+              triangleVertices = new Float32Array([
+                  snappedX + gridSize, snappedY,
+                  snappedX, snappedY,
+                  snappedX + gridSize, snappedY + gridSize
+              ]);
+          } else {
+              // Top-left triangle
+              triangleVertices = new Float32Array([
+                  snappedX, snappedY + gridSize,
+                  snappedX, snappedY,
+                  snappedX + gridSize, snappedY + gridSize
+              ]);
+          }
+      } else {
+          if (relativeX > relativeY) {
+              // Top-right triangle
+              triangleVertices = new Float32Array([
+                  snappedX + gridSize, snappedY + gridSize,
+                  snappedX, snappedY + gridSize,
+                  snappedX + gridSize, snappedY
+              ]);
+          } else {
+              // Bottom-left triangle
+              triangleVertices = new Float32Array([
+                  snappedX, snappedY,
+                  snappedX + gridSize, snappedY,
+                  snappedX, snappedY + gridSize
+              ]);
+          }
+      }
+	  function verticesEqualityCheck(vertices1, vertices2) {
+		  if (vertices1.length !== vertices2.length) 
+			  return false;
+		  for (let i = 0; i < vertices1.length; i++) {
+			if (vertices1[i] !== vertices2[i]) 
+				return false;
+		  }
+		  return true;
+	  }
+
+	  function removeTriangle(triangleVertices) {
+		  for (const session of sessionTriangles) {
+			  for (let i = session.length - 1; i >= 0; i--) {
+				  const triangleVertices_tmp = session[i].vertices;
+				  if(verticesEqualityCheck(triangleVertices_tmp,triangleVertices)){
+					  session.splice(i, 1); 
+					break; 
+				  }
+			  }
+		  }
+		}
+	  removeTriangle(triangleVertices)
+      temporaryTriangles =[]
+	 
+	  renderAllTriangles();  
+      
+  }
   function bresenhamLine(x1, y1, x2, y2) {
       x1 = Math.floor(x1 / gridSize);
       y1 = Math.floor(y1 / gridSize);
@@ -238,7 +325,15 @@
   function changeColor(color) {
       currentColor = color;
   }
+  function changeColor(color) {
+      currentColor = color;
+  }
+  function eraseTrigger() {
+      isErase_2 = true;
+  }
   
+  
+  window.eraseTrigger = eraseTrigger;
   window.redo = redo;
   window.undo = undo;
   window.changeColor = changeColor;
