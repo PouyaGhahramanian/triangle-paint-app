@@ -13,6 +13,7 @@
   let panStartY = null;
   let isZoom = false;
   let isDragging =false;
+
   let startX, startY;
   let vertices_rect = [];
   let isRectSelection = false;
@@ -130,6 +131,7 @@
 		  triggerSelection = false;
 		  isRectSelection = false;
 		  isDrawing = false;
+
 		  isErase = false;
 		  isErase_2 = false;
 		  isRectSelection = false;
@@ -146,6 +148,18 @@
 		  else{
 			  triggerSelection = false;
 			  isRectSelection = false;
+			  isDrawing = true;
+			  isErase = false;
+			  isErase_2 = false;
+		  }
+	  }
+	  else
+	  {
+		  if(isErase_2 === true){
+			  isErase = true;
+			  isDrawing = false;
+		  }
+		  else{
 			  isDrawing = true;
 			  isErase = false;
 			  isErase_2 = false;
@@ -200,7 +214,6 @@
 
   function handleMouseDown(event) {
 	  
-	  
       startX = event.clientX;
 	  startY = event.clientY;
 	  if(isMoving)
@@ -227,11 +240,11 @@
 	  }
 	  */
 	  else isDragging = true;
-	 
 		
 	}
 
 	function handleMouseUp() {
+
 		if(isRectSelection && !letsMove)
 		{
 			isRectSelection=false;
@@ -337,7 +350,7 @@
 	}
 	canvas.addEventListener('mouseleave', (event) => {
 	  isDragging = false;
-	 
+	
 	  const mouseUpEvent = new MouseEvent('mouseup');
 	  document.dispatchEvent(mouseUpEvent);
 	});
@@ -348,6 +361,7 @@
   
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mousemove', erase);
+
   canvas.addEventListener('mousemove', drawRect);
   
   
@@ -460,6 +474,7 @@
 	
     renderAllTriangles();  
   }
+
   function draw(event) {
       if (!isDrawing) return;
 	  
@@ -797,6 +812,7 @@
 	
 	let bb = translate( panOffset[0], panOffset[1], 0 );
 	
+
 	mvMatrix = mult_2(mvMatrix, bb);
 	
 	renderAllTriangles();
@@ -807,6 +823,7 @@
 	isZoom = true;
 	
   }
+
   function rectSelector() {
 	
 	triggerSelection = true;
@@ -821,6 +838,7 @@
 	sessionRectangles= []
 	renderAllTriangles();
   }
+
   function zoomTriggerOff() {
 	
 	isZoom = false;
@@ -832,8 +850,10 @@
 	updateViewMatrix(zoomFactor,panOffset)
     renderAllTriangles();
   }
+
   window.continueDrawing= continueDrawing;
   window.rectSelector= rectSelector;
+
   window.zoomTriggerOff= zoomTriggerOff;
   window.zoomTrigger = zoomTrigger;
   window.eraseTrigger = eraseTrigger;
