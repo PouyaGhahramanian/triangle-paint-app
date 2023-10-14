@@ -13,7 +13,6 @@
   let panStartY = null;
   let isZoom = false;
   let isDragging =false;
-
   let startX, startY;
   let vertices_rect = [];
   let isRectSelection = false;
@@ -23,7 +22,7 @@
   let movingTriangle = []
   let isMoving= false;
   let letsMove = false;
-  
+  let isCopy = false;
   const gridSize = 0.05; // This will create a grid where each cell is 0.05 units in size.
   
   let panOffset = [0.0, 0.0];
@@ -131,7 +130,6 @@
 		  triggerSelection = false;
 		  isRectSelection = false;
 		  isDrawing = false;
-
 		  isErase = false;
 		  isErase_2 = false;
 		  isRectSelection = false;
@@ -148,18 +146,6 @@
 		  else{
 			  triggerSelection = false;
 			  isRectSelection = false;
-			  isDrawing = true;
-			  isErase = false;
-			  isErase_2 = false;
-		  }
-	  }
-	  else
-	  {
-		  if(isErase_2 === true){
-			  isErase = true;
-			  isDrawing = false;
-		  }
-		  else{
 			  isDrawing = true;
 			  isErase = false;
 			  isErase_2 = false;
@@ -214,6 +200,7 @@
 
   function handleMouseDown(event) {
 	  
+	  
       startX = event.clientX;
 	  startY = event.clientY;
 	  if(isMoving)
@@ -240,11 +227,11 @@
 	  }
 	  */
 	  else isDragging = true;
+	 
 		
 	}
 
 	function handleMouseUp() {
-
 		if(isRectSelection && !letsMove)
 		{
 			isRectSelection=false;
@@ -252,6 +239,7 @@
 		}
 		if(letsMove && isDragging)
 		{
+			isCopy = false;
 			isDragging = false;
 			letsMove=false;
 		}
@@ -289,14 +277,9 @@
 			  }
 		}
 		if(letsMove)
-		{
-			
-			if (isDragging) 
+		{		
+			if (isDragging && isCopy)
 			{
-				console.log("still here")
-				//const deltaX = event.clientX - startX;
-				//const deltaY = event.clientY - startY;
-				
 				const rect = canvas.getBoundingClientRect();
 				const rectCenterX = (rect.left + rect.right) / 2;
 				const rectCenterY = (rect.top + rect.bottom) / 2;
@@ -305,8 +288,61 @@
 				 
 				const relativeX = (x + 1)* 0.02 //snappedX;
 				const relativeY = (y - 1)* 0.02//snappedYX;
-				
+				let tmpTriangles = []
+			
+				for (const triangle of sessionTriangles[sessionTriangles.length -1]) 
+				{	
 					
+					triangle.vertices[0] += relativeX;
+					triangle.vertices[1] += relativeY;
+					triangle.vertices[2] += relativeX;
+					triangle.vertices[3] += relativeY;
+					triangle.vertices[4] += relativeX;
+					triangle.vertices[5] += relativeY;
+					
+					//renderAllTriangles();
+				}
+				//temporaryTriangles.push([...tmpTriangles]);
+				//const session of sessionTriangles
+				console.log(sessionRectangles)
+				for (const rectangle of sessionRectangles) {
+					for (let i = 0; i < rectangle.length; i++) 
+					{						
+						//const rectangle_tmp = sessionRectangles[i];
+						rectangle[i][0] += relativeX;
+						rectangle[i][1] += relativeY;
+						rectangle[i][2] += relativeX;
+						rectangle[i][3] += relativeY;
+						rectangle[i][4] += relativeX;
+						rectangle[i][5] += relativeY;
+						rectangle[i][6] += relativeX;
+						rectangle[i][7] += relativeY;
+						rectangle[i][8] += relativeX;
+						rectangle[i][9] += relativeY;
+						rectangle[i][10] += relativeX;
+						rectangle[i][11] += relativeY;
+						rectangle[i][12] += relativeX;
+						rectangle[i][13] += relativeY;
+						rectangle[i][14] += relativeX;
+						rectangle[i][15] += relativeY;
+					}
+				}
+				renderAllTriangles();
+			}
+			else if (isDragging && !isCopy) 
+			{
+				
+				//console.log("still here")
+				//const deltaX = event.clientX - startX;
+				//const deltaY = event.clientY - startY;
+				const rect = canvas.getBoundingClientRect();
+				const rectCenterX = (rect.left + rect.right) / 2;
+				const rectCenterY = (rect.top + rect.bottom) / 2;
+				const x = ((event.clientX  - rectCenterX) / canvas.width) * 2 - 1;
+				const y = ((event.clientY - rectCenterY) / canvas.height) * -2 + 1;
+				 
+				const relativeX = (x + 1)* 0.02 //snappedX;
+				const relativeY = (y - 1)* 0.02//snappedYX;
 				for (let i = 0; i < movingTriangle.length; i++) 
 				{
 					
@@ -319,7 +355,7 @@
 					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[5] += relativeY;
 				}
 				//const session of sessionTriangles
-				console.log(sessionRectangles)
+				
 				for (const rectangle of sessionRectangles) {
 					for (let i = 0; i < rectangle.length; i++) 
 					{						
@@ -350,7 +386,7 @@
 	}
 	canvas.addEventListener('mouseleave', (event) => {
 	  isDragging = false;
-	
+	 
 	  const mouseUpEvent = new MouseEvent('mouseup');
 	  document.dispatchEvent(mouseUpEvent);
 	});
@@ -361,7 +397,6 @@
   
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mousemove', erase);
-
   canvas.addEventListener('mousemove', drawRect);
   
   
@@ -474,7 +509,6 @@
 	
     renderAllTriangles();  
   }
-
   function draw(event) {
       if (!isDrawing) return;
 	  
@@ -812,7 +846,6 @@
 	
 	let bb = translate( panOffset[0], panOffset[1], 0 );
 	
-
 	mvMatrix = mult_2(mvMatrix, bb);
 	
 	renderAllTriangles();
@@ -823,11 +856,15 @@
 	isZoom = true;
 	
   }
-
   function rectSelector() {
 	
 	triggerSelection = true;
 	
+  }
+  function copy() {
+	
+	isCopy = true;
+	doCopy();
   }
   function continueDrawing() {
 	isDragging = false;
@@ -838,7 +875,6 @@
 	sessionRectangles= []
 	renderAllTriangles();
   }
-
   function zoomTriggerOff() {
 	
 	isZoom = false;
@@ -850,10 +886,29 @@
 	updateViewMatrix(zoomFactor,panOffset)
     renderAllTriangles();
   }
-
+  function doCopy()
+  {	
+	if(movingTriangle.length === 0) return;
+	let tmpTriangles = []
+	for (let i = 0; i < movingTriangle.length; i++) 
+	{	
+		const copiedVertices = new Float32Array(sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices.length);
+		for (let j = 0; j < copiedVertices.length; j++) {
+			copiedVertices[j] = sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[j];
+		  }
+		
+		temporaryTriangles.push({
+			vertices: copiedVertices,
+			color: [...currentColor]
+		  });
+		
+	}
+	
+	sessionTriangles.push([...temporaryTriangles]);
+  }
+  window.copy  = copy;
   window.continueDrawing= continueDrawing;
   window.rectSelector= rectSelector;
-
   window.zoomTriggerOff= zoomTriggerOff;
   window.zoomTrigger = zoomTrigger;
   window.eraseTrigger = eraseTrigger;
