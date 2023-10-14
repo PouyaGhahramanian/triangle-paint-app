@@ -1,5 +1,4 @@
 (function() {
-
   let triangles = [];
   let drawingHistory = [];
   let lastX = null;
@@ -10,25 +9,42 @@
   let poppedTriangles = []
   let isErase= false;
   let isErase_2 = false;
+  let panStartX = null;
+  let panStartY = null;
+  let isZoom = false;
+  let isDragging =false;
   const gridSize = 0.05; // This will create a grid where each cell is 0.05 units in size.
+  
+  let panOffset = [0.0, 0.0];
+  let zoomFactor = 1.0;
+  var mvMatrix = mat4();
 
+  mvMatrix = lookAt([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+ 
+  
   const canvas = document.getElementById('paintCanvas');
   const gl = canvas.getContext('webgl');
+  const ctx = canvas.getContext('2d');
+  
+  
+  
+  
   if (!gl) {
       alert('WebGL not supported!');
       return;
   }
-
+  
   const vertexShaderSource = `
       attribute vec2 position;
+	  uniform mat4 modelView;
       void main() {
-          gl_Position = vec4(position, 0.0, 1.0);
+          gl_Position = modelView *vec4(position, 0.0, 1.0);
       }
   `;
-
   const fragmentShaderSource = `
       precision mediump float;
       uniform vec4 color;
+	  
       void main() {
           gl_FragColor = color;
       }
@@ -54,24 +70,37 @@
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
-
+  
+  
+  
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error('Program linking failed:', gl.getProgramInfoLog(program));
       return;
   }
   gl.useProgram(program);
-
+  modelView = gl.getUniformLocation( program, "modelView" );
+  
+  projection = gl.getUniformLocation( program, "projection" );
   let isDrawing = false;
-
+  
   canvas.addEventListener('mousedown', () => {
-	  if(isErase_2 === true){
-		  isErase = true;
+	  if(isZoom)
+	  {
 		  isDrawing = false;
-	  }
-	  else{
-		  isDrawing = true;
 		  isErase = false;
 		  isErase_2 = false;
+	  }
+	  else
+	  {
+		  if(isErase_2 === true){
+			  isErase = true;
+			  isDrawing = false;
+		  }
+		  else{
+			  isDrawing = true;
+			  isErase = false;
+			  isErase_2 = false;
+		  }
 	  }
 	  temporaryTriangles = []
   });
@@ -87,15 +116,96 @@
       temporaryTriangles = [];
       renderAllTriangles();
   });
+  canvas.addEventListener('wheel', (event) => {
+	if (!isZoom) return;
+    const zoomDelta = event.deltaY / 100;
+    const zoomIncrement = 0.1;
 
+    // Adjust the zoom factor based on the wheel movement
+    zoomFactor += zoomDelta * zoomIncrement* -1;
+
+    // Ensure zoomFactor is within valid limits
+    //zoomFactor = Math.max(0.1, zoomFactor);
+	//zoomFactor = zoomFactor * 1.1
+    // Calculate the change in panOffset based on the zoom level
+    //const panOffsetChange = [(canvas.width / 2) * (zoomFactor - 1),(canvas.height / 2) * (zoomFactor - 1)];
+
+    // Update the panOffset accordingly
+    //panOffset[0] += panOffsetChange[0];
+    //panOffset[1] += panOffsetChange[1];
+
+    // Update the view matrix with the new zoom factor and panOffset
+    updateViewMatrix(zoomFactor, panOffset);
+
+    // Render the triangles with the updated view matrix
+    renderAllTriangles();
+});
+
+  function handleMouseDown(event) {
+	  if (!isZoom) return;
+		isDragging = true;
+		
+	}
+
+	function handleMouseUp() {
+		if (!isZoom) return;
+		isDragging = false;
+	}
+
+	function handleMouseMove(event) {
+		if (!isZoom) return;
+		if (isDragging) {
+			const rect = canvas.getBoundingClientRect();
+			const rectCenterX = (rect.left + rect.right) / 2;
+			const rectCenterY = (rect.top + rect.bottom) / 2;
+			const x = ((event.clientX  - rectCenterX) / canvas.width) * 2 - 1;
+			const y = ((event.clientY - rectCenterY) / canvas.height) * -2 + 1;
+			 
+		    const relativeX = (x + 1)*0.008; //snappedX;
+		    const relativeY = (y - 1)* 0.008 //snappedYX;
+			const minPanOffset = -100;
+			const maxPanOffset = 100;
+	
+			
+			
+			panOffset[0] += relativeX 
+			panOffset[1] += relativeY
+			panOffset[0] = Math.max(minPanOffset, Math.min(maxPanOffset, panOffset[0]));
+			panOffset[1] = Math.max(minPanOffset, Math.min(maxPanOffset, panOffset[1]));
+			
+			updateViewMatrix(zoomFactor, panOffset);
+
+			renderAllTriangles();
+		  }
+	}
+	canvas.addEventListener('mouseleave', (event) => {
+	  isDragging = false;
+
+	  const mouseUpEvent = new MouseEvent('mouseup');
+	  document.dispatchEvent(mouseUpEvent);
+	});
+	
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mouseup', handleMouseUp);
+  canvas.addEventListener('mousemove', handleMouseMove);
+  
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mousemove', erase);
-
+  
+  
   function draw(event) {
       if (!isDrawing) return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / canvas.width) * 2 - 1;
+	  
+	  //const x = ((event.clientX - canvas.offsetLeft - panOffset[0]) / zoomFactor - rect.left) / (canvas.width / zoomFactor) * 2 - 1;
+      //const y = -(((event.clientY - canvas.offsetTop - panOffset[1]) / zoomFactor - rect.top) / (canvas.height / zoomFactor) * 2 - 1);
+	  //const adjustedMouseX = (event.clientX - rect.left - panOffset[0]) / zoomFactor;
+      //const adjustedMouseY = (event.clientY - rect.top  - panOffset[1]) / zoomFactor;
+	  
+	
+	  
+      const x = ((event.clientX  - rect.left) / canvas.width) * 2 - 1;
       const y = ((event.clientY - rect.top) / canvas.height) * -2 + 1;
 
       const snappedX = Math.floor(x / gridSize) * gridSize;
@@ -278,6 +388,8 @@
       gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
       gl.clear(gl.COLOR_BUFFER_BIT);
 	  
+	  
+	  gl.uniformMatrix4fv(modelView, false, flatten(mvMatrix));
 	  for (let triangle of temporaryTriangles) {
 		  // Set the color uniform for the current triangle
 		  gl.uniform4f(colorLocation, ...triangle.color);
@@ -291,6 +403,7 @@
 		  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
 		  gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
+		  
 	  }
   
 	  
@@ -308,6 +421,7 @@
 			  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
 			  gl.drawArrays(gl.TRIANGLES, 0, triangle.vertices.length / 2);
+			  
 		  }
 	  }
 	  
@@ -331,8 +445,76 @@
   function eraseTrigger() {
       isErase_2 = true;
   }
+  function changeDimension(zoomFactors) {
   
-  
+
+	  const matrix = [[0.0, 0.0, 0.0, 0.0],
+				[0.0, 0.0, 0.0, 0.0],
+				[0.0, 0.0, 0.0, 0.0],
+				[0.0, 0.0, 0.0, 1.0]];
+
+	  matrix[0][0] = zoomFactors[0];
+	  matrix[1][1] = zoomFactors[1];
+	  matrix[2][2] = zoomFactors[2];
+
+	  return matrix;
+	}
+	
+  /*
+  function caller()
+  {
+	//const zoomDelta = event.deltaY / 100;
+    zoomFactor += 0.1;
+    
+    // Ensure zoomFactor is within valid limits
+    zoomFactor = Math.max(0.1, zoomFactor);
+
+    // Update the panOffset (optional, adjust based on your requirements)
+    //panOffset[0] += event.deltaX / 100;
+    //panOffset[1] += event.deltaY / 100;
+	
+    // Update the view matrix with the new zoom factor and panOffset
+    updateViewMatrix(zoomFactor, panOffset);
+
+    // Render the triangles with the updated view matrix
+    
+  }
+  */
+  function updateViewMatrix(zoomFactor, panOffset) {
+	
+	mvMatrix = mat4();
+
+	let aa = scale(zoomFactor, [1.0, 1.0, 1.0])
+	
+	
+	let aaa = changeDimension(aa);
+	mvMatrix = mult_2( mvMatrix, aaa);
+	console.log(panOffset)
+	let bb = translate( panOffset[0], panOffset[1], 0 );
+	console.log(bb)
+	mvMatrix = mult_2(mvMatrix, bb);
+	
+	renderAllTriangles();
+	
+  }
+  function zoomTrigger() {
+	
+	isZoom = true;
+	
+  }
+  function zoomTriggerOff() {
+	
+	isZoom = false;
+	let panOffset = [0.0, 0.0];
+	let zoomFactor = 1.0;
+	var mvMatrix = mat4();
+
+	vMatrix = lookAt([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+	updateViewMatrix(zoomFactor,panOffset)
+    renderAllTriangles();
+  }
+  window.zoomTriggerOff= zoomTriggerOff;
+  window.zoomTrigger = zoomTrigger;
   window.eraseTrigger = eraseTrigger;
   window.redo = redo;
   window.undo = undo;
