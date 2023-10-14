@@ -10,19 +10,28 @@
     <canvas id="paintCanvas" width="900" height="900"></canvas>
     <div id="colorPicker">
         <!-- <button onclick="toggleInterpolation()">Toggle Interpolation</button> -->
-        <button onclick="changeColor([1.0, 0.0, 0.0, 1.0])" style="background-color: red;">Red</button>
-        <button onclick="changeColor([0.0, 1.0, 0.0, 1.0])" style="background-color: green;">Green</button>
-        <button onclick="changeColor([0.0, 0.0, 1.0, 1.0])" style="background-color: blue;">Blue</button>
-        <button onclick="changeColor([1.0, 1.0, 0.0, 1.0])" style="background-color: yellow;">Yellow</button>
-        <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" style="background-color: cyan;">Cyan</button>
-        <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" style="background-color: magenta;">Magenta</button>
-		<button onclick="undo()" style="background-color: white;">UNDO</button>
-		<button onclick="redo()" style="background-color: white;">REDO</button>
-		<button onclick="eraseTrigger()" style="background-color: white;">ERASE</button>
-		<button onclick="zoom()" style="background-color: white;">ZOOM</button>
+        <button onclick="changeColor([1.0, 0.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: red;">Red</button>
+        <button onclick="changeColor([0.0, 1.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: green;">Green</button>
+        <button onclick="changeColor([0.0, 0.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: blue;">Blue</button>
+        <button onclick="changeColor([1.0, 1.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: yellow;">Yellow</button>
+        <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: cyan;">Cyan</button>
+        <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: magenta;">Magenta</button>
+		<button onclick="undo()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">UNDO</button>
+		<button onclick="redo()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">REDO</button>
+		<button onclick="eraseTrigger()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">ERASE</button>
+		<br>
+		<button onclick="zoomTrigger()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">Start ZOOM</button>
+		<button onclick="zoomTriggerOff()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">Reset ZOOM</button>
+		<button onclick="rectSelector()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">SELECT</button>
+		<button onclick="continueDrawing()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">DRAW</button>
+		<button onclick="copy()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">COPY</button>
 
+
+		
     </div>
-	
+	<script type="text/javascript" src="webgl-utils.js"></script>
+	<script type="text/javascript" src="initShaders.js"></script>
+	<script type="text/javascript" src="MV.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
