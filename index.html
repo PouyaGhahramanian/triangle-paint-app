@@ -1,37 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CS465/575 Assignment 1: 2D Paint Application With Triangles</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
+
 <body>
-    <canvas id="paintCanvas" width="900" height="900"></canvas>
-    <div id="colorPicker">
-        <!-- <button onclick="toggleInterpolation()">Toggle Interpolation</button> -->
-        <button onclick="changeColor([1.0, 0.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: red;">Red</button>
-        <button onclick="changeColor([0.0, 1.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: green;">Green</button>
-        <button onclick="changeColor([0.0, 0.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: blue;">Blue</button>
-        <button onclick="changeColor([1.0, 1.0, 0.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: yellow;">Yellow</button>
-        <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: cyan;">Cyan</button>
-        <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" style="font-size: 20px;width: 100px; height: 70px;background-color: magenta;">Magenta</button>
-		<button onclick="undo()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">UNDO</button>
-		<button onclick="redo()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">REDO</button>
-		<button onclick="eraseTrigger()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">ERASE</button>
-		<br>
-		<button onclick="zoomTrigger()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">Start ZOOM</button>
-		<button onclick="zoomTriggerOff()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">Reset ZOOM</button>
-		<button onclick="rectSelector()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">SELECT</button>
-		<button onclick="continueDrawing()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">DRAW</button>
-		<button onclick="copy()" style="font-size: 20px;width: 100px; height: 70px;background-color: white;">COPY</button>
 
-
-		
+  <div class="container">
+    <div id="colorPicker" class="side-panel">
+        <h2>Colors</h2>
+        <!-- Color buttons with icons -->
+        <button onclick="changeColor([0.0, 0.0, 1.0, 1.0])" class="color-button blue active"></button>
+        <button onclick="changeColor([1.0, 0.0, 0.0, 1.0])" class="color-button red"></button>
+        <button onclick="changeColor([0.0, 1.0, 0.0, 1.0])" class="color-button green"></button>
+        <button onclick="changeColor([1.0, 1.0, 0.0, 1.0])" class="color-button yellow"></button>
+        <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" class="color-button cyan"></button>
+        <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" class="color-button magenta"></button>
     </div>
-	<script type="text/javascript" src="webgl-utils.js"></script>
+
+    <canvas id="paintCanvas" width="900" height="900"></canvas>
+
+    <div id="toolPicker" class="side-panel">
+        <div class="tool-section">
+            <h2>Tools</h2>
+            <button id = "undoBotton" onclick="undo()" class="tool-button"><i class="fas fa-undo"></i></button>
+            <button id = "redoBotton" onclick="redo()" class="tool-button"><i class="fas fa-redo"></i></button>
+            <button id="eraseButton" onclick="eraseTrigger(); setActiveButton('eraseButton');" class="tool-button"><i class="fas fa-eraser"></i></button>
+            <button id="zoomInButton" onclick="zoomTrigger(); setActiveButton('zoomInButton');" class="tool-button"><i class="fas fa-search-plus"></i></button>
+            <button id = "ZoomOutBotton" onclick="zoomTriggerOff()" class="tool-button"><i class="fas fa-search-minus"></i></button>
+            <button id = "selectButton" onclick="rectSelector()" class="tool-button"><i class="fas fa-mouse-pointer"></i></button>
+            <button id="brushButton" onclick="continueDrawing(); setActiveButton('brushButton');" class="tool-button active"><i class="fas fa-paint-brush"></i></button>
+            <button id = "copyButton" onclick="copy()" class="tool-button"><i class="fas fa-copy"></i></button>
+        </div>
+
+        <!-- Layer Management UI -->
+        <div class="layer-section">
+            <h2>Layers</h2>
+            <select id="layerSelector" class="tool-button" onchange="handleLayerChange()">
+            </select>
+            <button onclick="moveLayerUp()" class="tool-button"><i class="fas fa-arrow-up"></i> Move Up</button>
+            <button onclick="moveLayerDown()" class="tool-button"><i class="fas fa-arrow-down"></i> Move Down</button>
+        </div>
+    </div>
+</div>
+  <script type="text/javascript" src="webgl-utils.js"></script>
 	<script type="text/javascript" src="initShaders.js"></script>
 	<script type="text/javascript" src="MV.js"></script>
-    <script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>
