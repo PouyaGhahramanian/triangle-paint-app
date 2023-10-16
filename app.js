@@ -38,6 +38,12 @@
           this.rectangles = [];
           this.order = order;
           this.z = z;
+          this.sessionTriangles = [];
+          this.poppedTriangles = [];
+          this.temporaryTriangles = [];
+          this.temporaryRectangle = []
+          this.sessionRectangles = []
+          this.movingTriangle = []
       }
   }
 
@@ -288,25 +294,24 @@
 			  isErase_2 = false;
 		  }
 	  }
-	  temporaryTriangles = []
+	  currentLayer.temporaryTriangles = []
 
   });
 
   canvas.addEventListener('mouseup', () => {
-
-	  //triggerSelection = false;
-	  isRectSelection = false;
+  	  // triggerSelection = false;
+  	  isRectSelection = false;
       isDrawing = false;
-	  // isErase = false;
-	  // isErase_2 = false;
+  	  isErase = false;
+  	  // isErase_2 = false;
       lastX = null;
       lastY = null;
-	  sessionRectangles.push([...temporaryRectangle]);
-	  console.log(sessionRectangles);
+	  currentLayer.sessionRectangles.push([...currentLayer.temporaryRectangle]);
+	  // console.log(currentLayer.sessionRectangles);
 
-	  sessionTriangles.push([...temporaryTriangles]);
-      temporaryTriangles = [];
-	  temporaryRectangle = [];
+	  currentLayer.sessionTriangles.push([...currentLayer.temporaryTriangles]);
+      currentLayer.temporaryTriangles = [];
+	  currentLayer.temporaryRectangle = [];
 
       renderAllTriangles();
   });
@@ -346,7 +351,7 @@
 	  }
 	   if(!isZoom && isRectSelection && !isMoving)
 	  {
-		  sessionRectangles = []
+		  currentLayer.sessionRectangles = []
 		  isMoving = true;
 		  isDrawing = false;
 		  isDragging = false;
@@ -424,7 +429,7 @@
 				const relativeY = (y - 1)* 0.02//snappedYX;
 				let tmpTriangles = []
 
-				for (const triangle of sessionTriangles[sessionTriangles.length -1])
+				for (const triangle of currentLayer.sessionTriangles[currentLayer.sessionTriangles.length -1])
 				{
 
 					triangle.vertices[0] += relativeX;
@@ -438,8 +443,8 @@
 				}
 				//temporaryTriangles.push([...tmpTriangles]);
 				//const session of sessionTriangles
-				console.log(sessionRectangles)
-				for (const rectangle of sessionRectangles) {
+				console.log(currentLayer.sessionRectangles)
+				for (const rectangle of currentLayer.sessionRectangles) {
 					for (let i = 0; i < rectangle.length; i++)
 					{
 						//const rectangle_tmp = sessionRectangles[i];
@@ -477,20 +482,20 @@
 
 				const relativeX = (x + 1)* 0.02 //snappedX;
 				const relativeY = (y - 1)* 0.02//snappedYX;
-				for (let i = 0; i < movingTriangle.length; i++)
+				for (let i = 0; i < currentLayer.movingTriangle.length; i++)
 				{
 
 					//const triangle_tmp = session[i];
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[0] += relativeX;
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[1] += relativeY;
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[2] += relativeX;
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[3] += relativeY;
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[4] += relativeX;
-					sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[5] += relativeY;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[0] += relativeX;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[1] += relativeY;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[2] += relativeX;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[3] += relativeY;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[4] += relativeX;
+					currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[5] += relativeY;
 				}
 				//const session of sessionTriangles
 
-				for (const rectangle of sessionRectangles) {
+				for (const rectangle of currentLayer.sessionRectangles) {
 					for (let i = 0; i < rectangle.length; i++)
 					{
 						//const rectangle_tmp = sessionRectangles[i];
@@ -545,7 +550,7 @@
 
   function drawRect(event) {
       if (!isRectSelection || letsMove) return;
-      temporaryRectangle = [];
+      currentLayer.temporaryRectangle = [];
       const currentX = event.clientX;
       const currentY = event.clientY;
       const rect = canvas.getBoundingClientRect();
@@ -568,9 +573,9 @@
           startXNormalized, startYNormalized
       ]);
 
-      movingTriangle = [];
-      for (let sessionIndex = 0; sessionIndex < sessionTriangles.length; sessionIndex++) {
-          const session = sessionTriangles[sessionIndex];
+      currentLayer.movingTriangle = [];
+      for (let sessionIndex = 0; sessionIndex < currentLayer.sessionTriangles.length; sessionIndex++) {
+          const session = currentLayer.sessionTriangles[sessionIndex];
           for (let i = 0; i < session.length; i++) {
               const [x1, y1, x2, y2, x3, y3] = session[i].vertices;
               if (
@@ -579,12 +584,12 @@
                   isPointInRectangle(x3, y3, snappedX, snappedY, currentSnappedX - snappedX, currentSnappedY - snappedY)
               ) {
                   let tmp_index = [sessionIndex, i];
-                  movingTriangle.push(tmp_index);
+                  currentLayer.movingTriangle.push(tmp_index);
               }
           }
       }
 
-      temporaryRectangle.push(vertices_rect);
+      currentLayer.temporaryRectangle.push(vertices_rect);
       renderAllTriangles();
   }
 
@@ -644,13 +649,13 @@
       };
 
       currentLayer.triangles.push(triangleData);
-      temporaryTriangles.push(triangleData);
+      currentLayer.temporaryTriangles.push(triangleData);
 
       renderAllTriangles();
   }
 
   function erase(event) {
-    // console.log(isErase);
+      // console.log(isErase);
       if (!isErase) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -671,14 +676,14 @@
               triangleVertices = new Float32Array([
                   snappedX + gridSize, snappedY,
                   snappedX, snappedY,
-                  snappedX + gridSize, snappedY + gridSize
+                  snappedX + gridSize, snappedY + gridSize,
               ]);
           } else {
               // Top-left triangle
               triangleVertices = new Float32Array([
                   snappedX, snappedY + gridSize,
                   snappedX, snappedY,
-                  snappedX + gridSize, snappedY + gridSize
+                  snappedX + gridSize, snappedY + gridSize,
               ]);
           }
       } else {
@@ -687,7 +692,7 @@
               triangleVertices = new Float32Array([
                   snappedX + gridSize, snappedY + gridSize,
                   snappedX, snappedY + gridSize,
-                  snappedX + gridSize, snappedY
+                  snappedX + gridSize, snappedY,
               ]);
           } else {
               // Bottom-left triangle
@@ -699,51 +704,72 @@
           }
       }
       function verticesEqualityCheck(vertices1, vertices2) {
-          console.log(vertices1.length !== vertices2.length)
-          if (vertices1.length !== vertices2.length)
+          // console.log('vertices1')
+          // console.log(vertices1)
+          // console.log('vertices2')
+          // console.log(vertices2)
+          const epsilon = 0.00001; // A small threshold value
+
+          if (vertices1.length !== vertices2.length) {
               return false;
+          }
+
           for (let i = 0; i < vertices1.length; i++) {
-              if (vertices1[i] !== vertices2[i])
+              if (Math.abs(vertices1[i] - vertices2[i]) > epsilon) {
                   return false;
+              }
           }
           return true;
       }
+
 
       function removeTriangle(triangleVertices) {
           // Loop through the triangles in the current layer
           for (let i = currentLayer.triangles.length - 1; i >= 0; i--) {
               const triangleVertices_tmp = currentLayer.triangles[i].vertices;
+              const triangleVertices_tmp_2D = triangleVertices_tmp.filter((_, index) => index % 3 !== 2);
               // console.log(verticesEqualityCheck(triangleVertices_tmp, triangleVertices));
-              if(verticesEqualityCheck(triangleVertices_tmp, triangleVertices)){
+              if(verticesEqualityCheck(triangleVertices_tmp_2D, triangleVertices)){
                   // Remove the triangle from the current layer
                   currentLayer.triangles.splice(i, 1);
-                  console.log(`Triangle removed from layer ${currentLayer.name}`);
+                  // console.log(`Triangle removed from layer ${currentLayer.name}`);
                   break;
               }
           }
       }
-      console.log(`Trying to erase triangle with vertices:`, triangleVertices);
-      console.log(`Current layer: ${currentLayer.name}`);
+      // console.log(`Trying to erase triangle with vertices:`, triangleVertices);
+      // console.log(`Current layer: ${currentLayer.name}`);
 
       removeTriangle(triangleVertices);
-      temporaryTriangles = [];
+      currentLayer.temporaryTriangles = [];
 
       renderAllTriangles();
     }
-  function undo(){
-	  if (sessionTriangles.length > 0) {
-        const tmpTriangle = sessionTriangles.pop();
-		poppedTriangles.push(tmpTriangle)
-        renderAllTriangles();
+    function undo() {
+        if (currentLayer.sessionTriangles.length > 0) {
+            const tmpTriangle = currentLayer.sessionTriangles.pop();
+            currentLayer.poppedTriangles.push(tmpTriangle);
+
+            // Find the triangle in the main triangles array of the current layer and remove it
+            const index = currentLayer.triangles.findIndex(triangle =>
+                JSON.stringify(triangle.vertices) === JSON.stringify(tmpTriangle.vertices)
+            );
+            if (index > -1) {
+                currentLayer.triangles.splice(index, 1);
+            }
+            renderAllTriangles();
+        }
     }
-  }
-  function redo(){
-	  if (poppedTriangles.length > 0) {
-		  const tmpTriangle_2 = poppedTriangles.pop()
-		  sessionTriangles.push(tmpTriangle_2)
-		  renderAllTriangles();
-	  }
-  }
+
+    function redo() {
+        if (currentLayer.poppedTriangles.length > 0) {
+            const tmpTriangle_2 = currentLayer.poppedTriangles.pop();
+            currentLayer.sessionTriangles.push(tmpTriangle_2);
+            // Add the triangle back to the main triangles array of the current layer
+            currentLayer.triangles.push(tmpTriangle_2);
+            renderAllTriangles();
+        }
+    }
 
   function renderAllTriangles() {
       // Clear the canvas before drawing
@@ -876,7 +902,7 @@
       isRectSelection = false;
       isErase = false;
       isErase_2 = false;
-      sessionRectangles = [];
+      currentLayer.sessionRectangles = [];
       setActiveButton('brushButton');
       renderAllTriangles();
   }
@@ -893,21 +919,21 @@
         renderAllTriangles();
       }
   function doCopy() {
-    	if(movingTriangle.length === 0) return;
+    	if(currentLayer.movingTriangle.length === 0) return;
     	let tmpTriangles = []
-    	for (let i = 0; i < movingTriangle.length; i++)
+    	for (let i = 0; i < currentLayer.movingTriangle.length; i++)
     	{
-    		const copiedVertices = new Float32Array(sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices.length);
+    		const copiedVertices = new Float32Array(currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices.length);
     		for (let j = 0; j < copiedVertices.length; j++) {
-    			copiedVertices[j] = sessionTriangles[movingTriangle[i][0]][movingTriangle[i][1]].vertices[j];
+    			copiedVertices[j] = currentLayer.sessionTriangles[currentLayer.movingTriangle[i][0]][currentLayer.movingTriangle[i][1]].vertices[j];
     		  }
 
-    		temporaryTriangles.push({
+    		currentLayer.temporaryTriangles.push({
     			vertices: copiedVertices,
     			color: [...currentColor]
     		  });
 	      }
-    	sessionTriangles.push([...temporaryTriangles]);
+    	currentLayer.sessionTriangles.push([...currentLayer.temporaryTriangles]);
       }
 
   window.copy = copy;
