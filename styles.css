@@ -53,6 +53,11 @@ body {
     padding-left: 20px; /* Optional: Add some padding to the left of the layers section */
 }
 
+.file-panel {
+    border-right: 1px solid #ccc; /* Optional: Add a divider between tools and layers */
+    padding-right: 20px; /* Optional: Add some padding to the left of the layers section */
+}
+
 .side-panel {
     display: flex;
     flex-direction: row; /* Change from column to row */

@@ -467,10 +467,23 @@
   });
 
   function handleCopyDrag(event) {
-      // Visualize the movement of the rectangle (you can use your existing code for this)
-      // ...
+      // // Calculate the offset based on the difference between the current mouse position and the starting position
+      // offsetX = event.clientX - startX;
+      // offsetY = event.clientY - startY;
+      //
+      // // Adjust the vertices of the selectedRectangle by the offset
+      // for (let i = 0; i < currentLayer.selectedRectangle.length; i += 2) {
+      //     currentLayer.selectedRectangle[i] += offsetX / canvas.width;  // Normalize by canvas width for x-coordinate
+      //     currentLayer.selectedRectangle[i + 1] -= offsetY / canvas.height;  // Normalize by canvas height and invert for y-coordinate
+      // }
+      //
+      // // Update the starting position for the next mousemove event
+      // startX = event.clientX;
+      // startY = event.clientY;
+      //
+      // // Redraw the scene to visualize the moved rectangle
+      // renderAllTriangles();
   }
-
 
   function finalizeCopy(event) {
       const canvasWidth = canvas.width;
@@ -505,6 +518,9 @@
       isCopying = false; // End the copy mode
       canvas.removeEventListener('mousemove', handleCopyDrag);
       canvas.removeEventListener('mouseup', finalizeCopy);
+      // Reset the offsets
+      offsetX = 0;
+      offsetY = 0;
       renderAllTriangles();
       continueDrawing();
   }
@@ -1098,9 +1114,10 @@
           if (currentLayer.sessionRectangles.length > 0) {
               const rectangle = currentLayer.sessionRectangles[currentLayer.sessionRectangles.length - 1]; // Get the last rectangle
 
-              const colorUniform = gl.getUniformLocation(program, 'u_color');
+              // gl.clear(gl.COLOR_BUFFER_BIT);
+              // const colorUniform = gl.getUniformLocation(program, 'u_color');
               const colorRed = [1.0, 0.0, 0.0, 1.0];  // Red color
-              gl.uniform4fv(colorUniform, colorRed);
+              gl.uniform4fv(colorLocation, colorRed);
 
               const buffer = gl.createBuffer();
               gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -1112,6 +1129,21 @@
 
               gl.drawArrays(gl.LINE_LOOP, 0, 4); // Use LINE_LOOP to draw the rectangle's outline
               }
+              // Render the selected rectangle (if it exists)
+              // if (currentLayer.selectedRectangle && currentLayer.selectedRectangle.length === 8) {
+              //     const rectangleColor = [1.0, 0.0, 0.0, 1.0];  // Red color for the selected rectangle
+              //     gl.uniform4fv(colorLocation, rectangleColor);
+              //
+              //     const buffer = gl.createBuffer();
+              //     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+              //     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(currentLayer.selectedRectangle), gl.STATIC_DRAW);
+              //
+              //     const position = gl.getAttribLocation(program, 'position');
+              //     gl.enableVertexAttribArray(position);
+              //     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+              //
+              //     gl.drawArrays(gl.LINE_LOOP, 0, 4); // Use LINE_LOOP to draw the rectangle's outline
+              // }
         }
   }
 
@@ -1279,6 +1311,8 @@
 		const parsedData = JSON.parse(data);
 		// console.log('Processed data:', parsedData);
 
+    layers = []
+
 		if (Array.isArray(parsedData)) {
 		  for (let j = 0; j < parsedData.length; j++)
 		  {
@@ -1288,28 +1322,44 @@
 			  layer_tmp.id = parsedData[j]['id'];
 			  layer_tmp.name = parsedData[j]['name'];
 			  layer_tmp.order = parsedData[j]['order'];
-			  layer_tmp.z = parsedData[j]['order'];
+			  layer_tmp.z = parsedData[j]['z'];
+        layer_tmp.selectedRectangle = parsedData[j]['selectedRectangle'];
 
+			  // triangles = []
+			  // for (let k = 0; k < parsedData[j]['triangles'].length; k++)
+			  // {
+				//   tmp_triangle = parsedData[j]['triangles'][k]
+        //
+				//   const dataArray = Object.values(tmp_triangle.vertices);
+        //
+				//   const a = new Float32Array(dataArray);
+        //
+        //
+				//   const tri = {
+				// 	  vertices: new Float32Array(a),
+				// 	  color: [...tmp_triangle.color]
+				//   };
+				//   // console.log("asasa: ", tri.vertices)
+				//   triangles.push(tri)
+				//   // console.log(tri)
+        //
+			  // }
 
-			  triangles = []
-			  for (let k = 0; k < parsedData[j]['triangles'].length; k++)
-			  {
-				  tmp_triangle = parsedData[j]['triangles'][k]
+        triangles = [];
+        for (let k = 0; k < parsedData[j]['triangles'].length; k++) {
+            tmp_triangle = parsedData[j]['triangles'][k];
 
-				  const dataArray = Object.values(tmp_triangle.vertices);
+            // Check if tmp_triangle.vertices is already an array
+            const dataArray = Array.isArray(tmp_triangle.vertices) ? tmp_triangle.vertices : Object.values(tmp_triangle.vertices);
 
-				  const a = new Float32Array(dataArray);
+            const tri = {
+                vertices: new Float32Array(dataArray),
+                color: [...tmp_triangle.color]
+            };
+            triangles.push(tri);
+        }
 
-
-				  const tri = {
-					  vertices: new Float32Array(a),
-					  color: [...tmp_triangle.color]
-				  };
-				  // console.log("asasa: ", tri.vertices)
-				  triangles.push(tri)
-				  // console.log(tri)
-
-			  }
+        layer_tmp.triangles = triangles;
 
 			  layer_tmp.triangles = triangles;
 			  rectangles = []
@@ -1320,21 +1370,42 @@
 			  }
 			  layer_tmp.rectangles = rectangles;
 
-			  sessionTriangles = []
-			  for (let k = 0; k < parsedData[j]['sessionTriangles'].length; k++)
-			  {
-				  sessionTriangles.push(parsedData[j]['sessionTriangles'][k])
-			  }
-			  layer_tmp.sessionTriangles = sessionTriangles;
+			  // sessionTriangles = []
+			  // for (let k = 0; k < parsedData[j]['sessionTriangles'].length; k++)
+			  // {
+				//   sessionTriangles.push(parsedData[j]['sessionTriangles'][k])
+			  // }
+			  // layer_tmp.sessionTriangles = sessionTriangles;
+
+        sessionTriangles = [];
+        for (let k = 0; k < parsedData[j]['sessionTriangles'].length; k++) {
+            const tmp_sessionTriangle = parsedData[j]['sessionTriangles'][k];
+
+            // Reconstruct each triangle in the session
+            const reconstructedSessionTriangles = tmp_sessionTriangle.map(tmp_triangle => {
+                const dataArray = Array.isArray(tmp_triangle.vertices) ? tmp_triangle.vertices : Object.values(tmp_triangle.vertices);
+                return {
+                    vertices: new Float32Array(dataArray),
+                    color: [...tmp_triangle.color]
+                };
+            });
+
+            sessionTriangles.push(reconstructedSessionTriangles);
+        }
+        layer_tmp.sessionTriangles = sessionTriangles;
 
 
 			  poppedTriangles = []
-			  for (let k = 0; k < parsedData[j]['poppedTriangles'].length; k++)
-			  {
-				  poppedTriangles.push(parsedData[j]['poppedTriangles'][k])
-			  }
-			  layer_tmp.poppedTriangles = poppedTriangles;
-
+        if (Array.isArray(parsedData[j]['poppedTriangles'])) {
+            let poppedTriangles = [];
+            for (let k = 0; k < parsedData[j]['poppedTriangles'].length; k++) {
+                // Deep copy the triangle if necessary
+                const triangleCopy = JSON.parse(JSON.stringify(parsedData[j]['poppedTriangles'][k]));
+                poppedTriangles.push(triangleCopy);
+            }
+            layer_tmp.poppedTriangles = poppedTriangles;
+        }
+        
 			  temporaryTriangles = []
 			  for (let k = 0; k < parsedData[j]['temporaryTriangles'].length; k++)
 			  {
@@ -1357,20 +1428,21 @@
 			  layer_tmp.sessionRectangles = sessionRectangles;
 
 			  movingTriangle = []
-			  for (let k = 0; k < parsedData[j]['movingTriangle'].length; k++)
+			  for (let k = 0; k < parsedData[j]['trianglesToCopy'].length; k++)
 			  {
-				  movingTriangle.push(parsedData[j]['movingTriangle'][k])
+				  movingTriangle.push(parsedData[j]['trianglesToCopy'][k])
 			  }
 			  layer_tmp.movingTriangle = movingTriangle;
 
 			  layers.push(layer_tmp)
+        // console.log(layer_tmp)
 		  }
 		}
 		else{
 			// console.log("Error!")
 		}
-
-
+    currentLayer = layers[0]
+    populateLayerSelector();
 		renderAllTriangles();
 	  } catch (error) {
 		console.error('Error parsing JSON:', error);
