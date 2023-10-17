@@ -310,7 +310,7 @@
 	  // console.log(currentLayer.sessionRectangles);
 
 	  currentLayer.sessionTriangles.push([...currentLayer.temporaryTriangles]);
-      currentLayer.temporaryTriangles = [];
+    currentLayer.temporaryTriangles = [];
 	  currentLayer.temporaryRectangle = [];
 
       renderAllTriangles();
@@ -821,23 +821,10 @@
           }
 
           // Assuming you're using rectangles, render them
-          for (let rectangle of layer.rectangles || []) {
-              const colorUniform = gl.getUniformLocation(program, 'u_color');
-              const color = [0.0, 0.0, 0.0, 1.0];  // Black color
-              gl.uniform4fv(colorUniform, color);
-
-              let adjustedVertices = [];
-              for (let i = 0; i < rectangle.length; i += 3) {
-                  adjustedVertices.push(rectangle[i], rectangle[i + 1], zCoord);
-              }
-
-              const buffer = gl.createBuffer();
-              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-              gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(adjustedVertices), gl.STATIC_DRAW);
-              gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
-
-              gl.drawArrays(gl.LINES, 0, adjustedVertices.length / 3);
-          }
+          console.log("layer.sessionRectangles")
+          console.log(layer.sessionRectangles)
+          console.log("layer.temporaryRectangle")
+          console.log(layer.temporaryRectangle)
       }
   }
 
