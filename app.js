@@ -296,6 +296,7 @@
 
   function selectButtonHandler() {
       isSelecting = true;
+      isPicking = false;
       isCopying = false;
       isDrawing = false;
       isDragging = false;
@@ -375,33 +376,96 @@
       gl.drawArrays(gl.LINE_LOOP, 0, 4);
   }
 
+  let isPicking = false;
+
+  function moveRectangleArea() {
+      setActiveButton("moveButton");
+      isPicking = true;
+      isCopying = false;
+      isSelecting = false;
+      isDrawing = false;
+
+      // Clear the trianglesToMove array
+      currentLayer.trianglesToMove = [];
+
+      // Iterate over each session and each triangle in that session
+      for (let session of currentLayer.sessionTriangles) {
+          for (let triangle of session) {
+              if (isTriangleInsideRectangle(triangle, currentLayer.selectedRectangle)) {
+                  currentLayer.trianglesToMove.push(triangle);
+              }
+          }
+      }
+  }
+
+  canvas.addEventListener('mousedown', function(event) {
+      if (isPicking) {
+          startX = event.clientX;
+          startY = event.clientY;
+
+          canvas.addEventListener('mousemove', handleMoveDrag);
+          canvas.addEventListener('mouseup', finalizeMove);
+      }
+  });
+
+  function handleMoveDrag(event) {
+      // Visualize the movement of the rectangle (similar to handleCopyDrag)
+      // ...
+  }
+
+  function finalizeMove(event) {
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    const normalizedOffsetX = (event.clientX - startX) / (canvasWidth / 2);
+    const normalizedOffsetY = -(event.clientY - startY) / (canvasHeight / 2); // Negative because y-axis is inverted in WebGL
+
+
+    let movingTriangleSession = []
+      // Remove the triangles from their original position
+      for (let triangle of currentLayer.trianglesToMove) {
+          const index = currentLayer.triangles.findIndex(t => areTrianglesEqual(t, triangle));
+          if (index > -1) {
+              currentLayer.triangles.splice(index, 1);
+          }
+      }
+
+      for (let triangle of currentLayer.trianglesToMove) {
+          const newTriangle = {
+              vertices: triangle.vertices.map((vertex, index) => {
+                  if (index % 3 === 0) { // x-coordinate
+                      return vertex + normalizedOffsetX;
+                  } else if (index % 3 === 1) { // y-coordinate
+                      return vertex + normalizedOffsetY;
+                  } else {
+                      return vertex; // z-coordinate remains unchanged
+                  }
+              }),
+              color: triangle.color
+          };
+
+          currentLayer.triangles.push(newTriangle); // Add to the main triangles array
+          movingTriangleSession.push(newTriangle); // Add to the temporary session array
+      }
+
+  // Push the session of copied triangles to currentLayer.sessionTriangles
+  currentLayer.sessionTriangles.push(movingTriangleSession);
+  currentLayer.trianglesToMove = []; // Clear the temporary array
+  isPicking = false; // End the copy mode
+  canvas.removeEventListener('mousemove', handleMoveDrag);
+  canvas.removeEventListener('mouseup', finalizeMove);
+  // Reset the offsets
+  offsetX = 0;
+  offsetY = 0;
+  renderAllTriangles();
+  continueDrawing();
+
+  }
+
+
   let isCopying = false;
   let hasCopied = false;
-
-  // function isTriangleInsideRectangle(triangle, rectangle) {
-  //     // Derive the left, right, top, and bottom values from the rectangle array
-  //     const left = Math.min(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
-  //     const right = Math.max(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
-  //     const top = Math.max(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
-  //     const bottom = Math.min(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
-  //     console.log("left")
-  //     console.log(left)
-  //     console.log("right")
-  //     console.log(right)
-  //     console.log("top")
-  //     console.log(top)
-  //     console.log("bottom")
-  //     console.log(bottom)
-  //
-  //     for (let i = 0; i < triangle.vertices.length; i += 2) { // Increment by 2 to skip z coordinate
-  //         const x = triangle.vertices[i];
-  //         const y = triangle.vertices[i + 1];
-  //         if (!(x >= left && x <= right && y >= bottom && y <= top)) {
-  //             return false; // Return false if any vertex is outside the rectangle
-  //         }
-  //     }
-  //     return true;
-  // }
 
   function isTriangleInsideRectangle(triangle, rectangle) {
       // Check if all vertices of the triangle are inside the rectangle
@@ -531,12 +595,22 @@
     if(isCopying)
 	  {
 		  // isRectSelection = true;
+      isPicking = false;
       isSelecting = false;
 		  isDrawing = false;
 		  isErase = false;
 		  isErase_2 = false;
 		  isZoom = false;
 	  }
+    else if(isPicking)
+    {
+          isCopying = false;
+          isSelecting = false;
+    		  isDrawing = false;
+    		  isErase = false;
+    		  isErase_2 = false;
+    		  isZoom = false;
+    	  }
     else if(isSelecting)
 	  {
 		  // isRectSelection = true;
@@ -1219,6 +1293,7 @@
 	doCopy();
   }
   function continueDrawing() {
+      isPicking = false;
       isCopying = false;
       isSelecting = false;
       isDragging = false;
@@ -1405,7 +1480,7 @@
             }
             layer_tmp.poppedTriangles = poppedTriangles;
         }
-        
+
 			  temporaryTriangles = []
 			  for (let k = 0; k < parsedData[j]['temporaryTriangles'].length; k++)
 			  {
@@ -1450,6 +1525,7 @@
 	  }
 	}
 
+  window.moveRectangleArea = moveRectangleArea;
   window.copyRectangleArea = copyRectangleArea;
   window.selectButtonHandler = selectButtonHandler;
   window.load = load;
