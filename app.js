@@ -44,6 +44,8 @@
           this.temporaryRectangle = []
           this.sessionRectangles = []
           this.movingTriangle = []
+          this.selectedRectangle = null;
+          this.trianglesToCopy = [];
       }
   }
 
@@ -63,6 +65,7 @@
   function handleLayerChange() {
       const layerSelector = document.getElementById('layerSelector');
       const selectedLayerId = layerSelector.value; // Assuming the value of each option is the layer's ID
+      eraseRectangle();
       selectLayer(selectedLayerId);
   }
 
@@ -257,11 +260,257 @@
   projection = gl.getUniformLocation( program, "projection" );
   let isDrawing = false;
 
+
+  function eraseRectangle() {
+      // Clear the last rectangle from the sessionRectangles of the current layer
+      for (const layer of layers){
+          if (layer.sessionRectangles.length > 0) {
+              layer.sessionRectangles.pop();
+          }
+      }
+
+
+      // Redraw the canvas to reflect the changes
+      renderAllTriangles();
+  }
+
+  let isSelecting = false;
+  let selectStartPoint = null;
+  let selectEndPoint = null;
+  let currentRectangle = null;
+  let rectStartPoint = null;
+
+  function selectButtonHandler() {
+      isSelecting = true;
+      isCopying = false;
+      isDrawing = false;
+      isDragging = false;
+      letsMove = false;
+      triggerSelection = false;
+      isMoving = false;
+      isRectSelection = false;
+      isErase = false;
+      isErase_2 = false;
+      currentLayer.sessionRectangles = [];
+      setActiveButton('selectButton');
+      renderAllTriangles();
+      }
+  function clearPreviousSelection() {
+      if (currentLayer.sessionRectangles.length > 0) {
+          currentLayer.sessionRectangles.pop();
+      }
+  }
+  canvas.addEventListener('mousedown', (event) => {
+      if (isSelecting) {
+          clearPreviousSelection(); // Clear the previous selection
+
+          const rect = canvas.getBoundingClientRect();
+          const x = ((event.clientX - rect.left) / canvas.width) * 2 - 1;
+          const y = ((event.clientY - rect.top) / canvas.height) * -2 + 1;
+          selectStartPoint = { x, y };
+          selectEndPoint = { x, y };
+          // rectStartPoint = { x, y };
+      }
+  });
+  canvas.addEventListener('mousemove', (event) => {
+      if (isSelecting && selectStartPoint) {
+          const rect = canvas.getBoundingClientRect();
+          const x = ((event.clientX - rect.left) / canvas.width) * 2 - 1;
+          const y = ((event.clientY - rect.top) / canvas.height) * -2 + 1;
+          selectEndPoint = { x, y };
+          renderAllTriangles(); // This will also render the selection rectangle
+          drawRectangle(selectStartPoint.x, selectStartPoint.y, x, y, [1.0, 0.0, 0.0, 1.0]); // Red color
+      }
+  });
+  canvas.addEventListener('mouseup', (event) => {
+      if (isSelecting && selectStartPoint && selectEndPoint) {
+          // Convert the start and end points to a rectangle representation
+          currentRectangle = [
+              selectStartPoint.x, selectStartPoint.y,
+              selectEndPoint.x, selectStartPoint.y,
+              selectEndPoint.x, selectEndPoint.y,
+              selectStartPoint.x, selectEndPoint.y
+          ];
+          currentLayer.sessionRectangles.push(currentRectangle);
+          currentLayer.selectedRectangle = currentRectangle;
+          selectStartPoint = null;
+          selectEndPoint = null;
+          // isSelecting = false; // Reset the selecting mode
+      }
+  });
+
+  function drawRectangle(x1, y1, x2, y2, color) {
+      const rectangleVertices = new Float32Array([
+          x1, y1,
+          x2, y1,
+          x2, y2,
+          x1, y2
+      ]);
+
+      // Set the color
+      gl.uniform4f(colorLocation, ...color);
+
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, rectangleVertices, gl.STATIC_DRAW);
+
+      const position = gl.getAttribLocation(program, 'position');
+      gl.enableVertexAttribArray(position);
+      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+      gl.drawArrays(gl.LINE_LOOP, 0, 4);
+  }
+
+  let isCopying = false;
+  let hasCopied = false;
+
+  // function isTriangleInsideRectangle(triangle, rectangle) {
+  //     // Derive the left, right, top, and bottom values from the rectangle array
+  //     const left = Math.min(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
+  //     const right = Math.max(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
+  //     const top = Math.max(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
+  //     const bottom = Math.min(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
+  //     console.log("left")
+  //     console.log(left)
+  //     console.log("right")
+  //     console.log(right)
+  //     console.log("top")
+  //     console.log(top)
+  //     console.log("bottom")
+  //     console.log(bottom)
+  //
+  //     for (let i = 0; i < triangle.vertices.length; i += 2) { // Increment by 2 to skip z coordinate
+  //         const x = triangle.vertices[i];
+  //         const y = triangle.vertices[i + 1];
+  //         if (!(x >= left && x <= right && y >= bottom && y <= top)) {
+  //             return false; // Return false if any vertex is outside the rectangle
+  //         }
+  //     }
+  //     return true;
+  // }
+
+  function isTriangleInsideRectangle(triangle, rectangle) {
+      // Check if all vertices of the triangle are inside the rectangle
+      // console.log("triangle")
+      // console.log(triangle)
+      // console.log("rectangle")
+      // console.log(rectangle)
+      // Derive the left, right, top, and bottom values from the rectangle array
+      const left = Math.min(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
+      const right = Math.max(rectangle[0], rectangle[2], rectangle[4], rectangle[6]);
+      const top = Math.max(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
+      const bottom = Math.min(rectangle[1], rectangle[3], rectangle[5], rectangle[7]);
+      // console.log("left")
+      // console.log(left)
+      // console.log("right")
+      // console.log(right)
+      // console.log("top")
+      // console.log(top)
+      // console.log("bottom")
+      // console.log(bottom)
+
+      for (let i = 0; i < triangle.vertices.length; i += 3) { // Increment by 2 to skip z coordinate
+          const sx = triangle.vertices[i];
+          const sy = triangle.vertices[i + 1];
+          // console.log("x")
+          // console.log(sx)
+          // console.log("y")
+          // console.log(sy)
+          if (!(sx >= left && sx <= right && sy >= bottom && sy <= top)) {
+              // console.log("false")
+              return false; // Return false if any vertex is outside the rectangle
+          }
+      }
+      // console.log("true")
+      return true;
+  }
+
+  function copyRectangleArea() {
+      setActiveButton("copyButton");
+      isCopying = true;
+      isSelecting = false;
+      isDrawing = false;
+      // selectedRectangle = null;
+
+      // Iterate over each session and each triangle in that session
+      for (let session of currentLayer.sessionTriangles) {
+          for (let triangle of session) {
+              if (isTriangleInsideRectangle(triangle, currentLayer.selectedRectangle)) {
+                  currentLayer.trianglesToCopy.push(triangle);
+              }
+          }
+      }
+  }
+
+  canvas.addEventListener('mousedown', function(event) {
+      if (isCopying) {
+          startX = event.clientX;
+          startY = event.clientY;
+
+          canvas.addEventListener('mousemove', handleCopyDrag);
+          canvas.addEventListener('mouseup', finalizeCopy);
+      }
+  });
+
+  function handleCopyDrag(event) {
+      // Visualize the movement of the rectangle (you can use your existing code for this)
+      // ...
+  }
+
+
+  function finalizeCopy(event) {
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+
+      const normalizedOffsetX = (event.clientX - startX) / (canvasWidth / 2);
+      const normalizedOffsetY = -(event.clientY - startY) / (canvasHeight / 2); // Negative because y-axis is inverted in WebGL
+
+      let copiedTrianglesSession = []; // Temporary array to hold the copied triangles for this session
+
+      for (let triangle of currentLayer.trianglesToCopy) {
+          const newTriangle = {
+              vertices: triangle.vertices.map((vertex, index) => {
+                  if (index % 3 === 0) { // x-coordinate
+                      return vertex + normalizedOffsetX;
+                  } else if (index % 3 === 1) { // y-coordinate
+                      return vertex + normalizedOffsetY;
+                  } else {
+                      return vertex; // z-coordinate remains unchanged
+                  }
+              }),
+              color: triangle.color
+          };
+
+          currentLayer.triangles.push(newTriangle); // Add to the main triangles array
+          copiedTrianglesSession.push(newTriangle); // Add to the temporary session array
+      }
+
+      // Push the session of copied triangles to currentLayer.sessionTriangles
+      currentLayer.sessionTriangles.push(copiedTrianglesSession);
+      currentLayer.trianglesToCopy = []; // Clear the temporary array
+      isCopying = false; // End the copy mode
+      canvas.removeEventListener('mousemove', handleCopyDrag);
+      canvas.removeEventListener('mouseup', finalizeCopy);
+      renderAllTriangles();
+      continueDrawing();
+  }
+
   canvas.addEventListener('mousedown', () => {
 
-	  if(triggerSelection)
+    // if(triggerSelection)
+    if(isCopying)
 	  {
-		  isRectSelection = true;
+		  // isRectSelection = true;
+      isSelecting = false;
+		  isDrawing = false;
+		  isErase = false;
+		  isErase_2 = false;
+		  isZoom = false;
+	  }
+    else if(isSelecting)
+	  {
+		  // isRectSelection = true;
+      isCopying = false;
 		  isDrawing = false;
 		  isErase = false;
 		  isErase_2 = false;
@@ -270,6 +519,8 @@
 
 	  else if(isZoom)
 	  {
+      isCopying = false;
+		  isDrawing = false;
 		  triggerSelection = false;
 		  isRectSelection = false;
 		  isDrawing = false;
@@ -280,6 +531,8 @@
 	  else
 	  {
 		  if(isErase_2 === true){
+        isCopying = false;
+  		  isDrawing = false;
 			  triggerSelection = false;
 			  isRectSelection = false;
 			  isErase = true;
@@ -287,6 +540,8 @@
 
 		  }
 		  else{
+        isCopying = false;
+  		  isDrawing = false;
 			  triggerSelection = false;
 			  isRectSelection = false;
 			  isDrawing = true;
@@ -306,7 +561,7 @@
   	  // isErase_2 = false;
       lastX = null;
       lastY = null;
-	  currentLayer.sessionRectangles.push([...currentLayer.temporaryRectangle]);
+	  // currentLayer.sessionRectangles.push([...currentLayer.temporaryRectangle]);
 	  // console.log(currentLayer.sessionRectangles);
 
 	  currentLayer.sessionTriangles.push([...currentLayer.temporaryTriangles]);
@@ -443,7 +698,7 @@
 				}
 				//temporaryTriangles.push([...tmpTriangles]);
 				//const session of sessionTriangles
-				console.log(currentLayer.sessionRectangles)
+				// console.log(currentLayer.sessionRectangles)
 				for (const rectangle of currentLayer.sessionRectangles) {
 					for (let i = 0; i < rectangle.length; i++)
 					{
@@ -745,29 +1000,52 @@
 
       renderAllTriangles();
     }
-    function undo() {
-        if (currentLayer.sessionTriangles.length > 0) {
-            const tmpTriangle = currentLayer.sessionTriangles.pop();
-            currentLayer.poppedTriangles.push(tmpTriangle);
-
-            // Find the triangle in the main triangles array of the current layer and remove it
-            const index = currentLayer.triangles.findIndex(triangle =>
-                JSON.stringify(triangle.vertices) === JSON.stringify(tmpTriangle.vertices)
-            );
-            if (index > -1) {
-                currentLayer.triangles.splice(index, 1);
+    function areTrianglesEqual(triangle1, triangle2) {
+        for (let i = 0; i < triangle1.vertices.length; i++) {
+            // Use a small epsilon value to account for floating point precision issues
+            if (Math.abs(triangle1.vertices[i] - triangle2.vertices[i]) > 0.00001) {
+                return false;
             }
-            renderAllTriangles();
+        }
+        return true;
+    }
+
+    function undo() {
+        while (currentLayer.sessionTriangles.length > 0) {
+            // Pop the last session array
+            const lastSession = currentLayer.sessionTriangles.pop();
+            currentLayer.poppedTriangles.push(lastSession);
+
+            if (lastSession.length > 0) { // Check if the session is non-empty
+                // Iterate over each triangle in the last session and remove it from currentLayer.triangles
+                for (const tmpTriangle of lastSession) {
+                    const index = currentLayer.triangles.findIndex(triangle =>
+                        areTrianglesEqual(triangle, tmpTriangle)
+                    );
+                    if (index > -1) {
+                        currentLayer.triangles.splice(index, 1);
+                    }
+                }
+                renderAllTriangles();
+                break; // Exit the loop once a non-empty session is processed
+            }
         }
     }
 
     function redo() {
-        if (currentLayer.poppedTriangles.length > 0) {
-            const tmpTriangle_2 = currentLayer.poppedTriangles.pop();
-            currentLayer.sessionTriangles.push(tmpTriangle_2);
-            // Add the triangle back to the main triangles array of the current layer
-            currentLayer.triangles.push(tmpTriangle_2);
-            renderAllTriangles();
+        while (currentLayer.poppedTriangles.length > 0) {
+            // Pop the last session array from poppedTriangles
+            const lastPoppedSession = currentLayer.poppedTriangles.pop();
+            currentLayer.sessionTriangles.push(lastPoppedSession);
+
+            if (lastPoppedSession.length > 0) { // Check if the session is non-empty
+                // Iterate over each triangle in the last popped session and add it back to currentLayer.triangles
+                for (const tmpTriangle of lastPoppedSession) {
+                    currentLayer.triangles.push(tmpTriangle);
+                }
+                renderAllTriangles();
+                break; // Exit the loop once a non-empty session is processed
+            }
         }
     }
 
@@ -775,22 +1053,19 @@
       // Clear the canvas before drawing
       gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
       gl.clear(gl.COLOR_BUFFER_BIT);
-	 
-		  
-		 
       gl.uniformMatrix4fv(modelView, false, flatten(mvMatrix));
-	  console.log(layers)
+  	  // console.log(layers)
       const position = gl.getAttribLocation(program, 'position');
       gl.enableVertexAttribArray(position);
-	  let indexes = 0;
+  	  let indexes = 0;
       for (const layer of layers) {
           const zCoord = layer.z;
-			
+
           // Render triangles in the layer
           for (let triangle of layer.triangles) {
-			 
+
               let adjustedVertices = [];
-		      
+
               for (let i = 0; i < triangle.vertices.length; i += 3) {
                   adjustedVertices.push(triangle.vertices[i], triangle.vertices[i + 1], zCoord);
               }
@@ -804,13 +1079,26 @@
 
               gl.drawArrays(gl.TRIANGLES, 0, adjustedVertices.length / 3);
           }
+          // Render Rectangeles
+          // Draw the selected rectangle (if any)
+          if (currentLayer.sessionRectangles.length > 0) {
+              const rectangle = currentLayer.sessionRectangles[currentLayer.sessionRectangles.length - 1]; // Get the last rectangle
 
-          // Assuming you're using rectangles, render them
-          console.log("layer.sessionRectangles")
-          console.log(layer.sessionRectangles)
-          console.log("layer.temporaryRectangle")
-          console.log(layer.temporaryRectangle)
-      }
+              const colorUniform = gl.getUniformLocation(program, 'u_color');
+              const colorRed = [1.0, 0.0, 0.0, 1.0];  // Red color
+              gl.uniform4fv(colorUniform, colorRed);
+
+              const buffer = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+              gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rectangle), gl.STATIC_DRAW);
+
+              const position = gl.getAttribLocation(program, 'position');
+              gl.enableVertexAttribArray(position);
+              gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+              gl.drawArrays(gl.LINE_LOOP, 0, 4); // Use LINE_LOOP to draw the rectangle's outline
+              }
+        }
   }
 
   let currentColor = [0.0, 0.0, 1.0, 1.0]; // Default to red
@@ -885,6 +1173,8 @@
 	doCopy();
   }
   function continueDrawing() {
+      isCopying = false;
+      isSelecting = false;
       isDragging = false;
       letsMove = false;
       triggerSelection = false;
@@ -892,7 +1182,8 @@
       isRectSelection = false;
       isErase = false;
       isErase_2 = false;
-      currentLayer.sessionRectangles = [];
+      eraseRectangle();
+      // currentLayer.sessionRectangles = [];
       setActiveButton('brushButton');
       renderAllTriangles();
   }
@@ -909,6 +1200,7 @@
         renderAllTriangles();
       }
   function doCopy() {
+    console.log('doCopuy()')
     	if(currentLayer.movingTriangle.length === 0) return;
     	let tmpTriangles = []
     	for (let i = 0; i < currentLayer.movingTriangle.length; i++)
@@ -936,12 +1228,12 @@
 	  document.body.removeChild(link);
 	  console.log(data)
 	}
-	
-	
+
+
 	function save() {
 		  saveToFile(layers, 'vertices');  // Save the objects as a JSON file
 		}
-	  
+
 	  function load() {
 	  const input = document.createElement('input');
 	  input.type = 'file';
@@ -958,7 +1250,7 @@
 
 		reader.onload = function (e) {
 		  const contents = e.target.result;
-		  console.log('File contents:', contents);
+		  // console.log('File contents:', contents);
 		  // Process the loaded data (replace with your specific logic)
 		  processLoadedData(contents);
 		};
@@ -968,67 +1260,67 @@
 	}
 
 	function processLoadedData(data) {
-      
+
 	  try {
 		const parsedData = JSON.parse(data);
-		console.log('Processed data:', parsedData);
-		
+		// console.log('Processed data:', parsedData);
+
 		if (Array.isArray(parsedData)) {
 		  for (let j = 0; j < parsedData.length; j++)
 		  {
-			 
+
 			  layer_tmp = new Layer(1, "Layer 1", 0, 0.1)
-			  
+
 			  layer_tmp.id = parsedData[j]['id'];
 			  layer_tmp.name = parsedData[j]['name'];
 			  layer_tmp.order = parsedData[j]['order'];
 			  layer_tmp.z = parsedData[j]['order'];
-			  
-			 
+
+
 			  triangles = []
 			  for (let k = 0; k < parsedData[j]['triangles'].length; k++)
 			  {
 				  tmp_triangle = parsedData[j]['triangles'][k]
-				  
+
 				  const dataArray = Object.values(tmp_triangle.vertices);
 
 				  const a = new Float32Array(dataArray);
 
-				  
+
 				  const tri = {
 					  vertices: new Float32Array(a),
 					  color: [...tmp_triangle.color]
 				  };
-				  console.log("asasa: ", tri.vertices)
-				  triangles.push(tri) 
-				  console.log(tri)
-				  
+				  // console.log("asasa: ", tri.vertices)
+				  triangles.push(tri)
+				  // console.log(tri)
+
 			  }
-			  
+
 			  layer_tmp.triangles = triangles;
 			  rectangles = []
 			  for (let k = 0; k < parsedData[j]['rectangles'].length; k++)
 			  {
-				  
+
 				  rectangles.push(parsedData[j]['rectangles'][k])
 			  }
 			  layer_tmp.rectangles = rectangles;
-			  
+
 			  sessionTriangles = []
 			  for (let k = 0; k < parsedData[j]['sessionTriangles'].length; k++)
 			  {
 				  sessionTriangles.push(parsedData[j]['sessionTriangles'][k])
 			  }
 			  layer_tmp.sessionTriangles = sessionTriangles;
-			  
-			  
+
+
 			  poppedTriangles = []
 			  for (let k = 0; k < parsedData[j]['poppedTriangles'].length; k++)
 			  {
 				  poppedTriangles.push(parsedData[j]['poppedTriangles'][k])
 			  }
 			  layer_tmp.poppedTriangles = poppedTriangles;
-			  
+
 			  temporaryTriangles = []
 			  for (let k = 0; k < parsedData[j]['temporaryTriangles'].length; k++)
 			  {
@@ -1042,38 +1334,38 @@
 				  temporaryRectangle.push(parsedData[j]['temporaryRectangle'][k])
 			  }
 			  layer_tmp.temporaryRectangle = temporaryRectangle;
-	
+
 			  sessionRectangles = []
 			  for (let k = 0; k < parsedData[j]['sessionRectangles'].length; k++)
 			  {
 				  sessionRectangles.push(parsedData[j]['sessionRectangles'][k])
 			  }
 			  layer_tmp.sessionRectangles = sessionRectangles;
-			  
+
 			  movingTriangle = []
 			  for (let k = 0; k < parsedData[j]['movingTriangle'].length; k++)
 			  {
 				  movingTriangle.push(parsedData[j]['movingTriangle'][k])
 			  }
 			  layer_tmp.movingTriangle = movingTriangle;
-			  
+
 			  layers.push(layer_tmp)
 		  }
 		}
 		else{
-			console.log("Error!")
+			// console.log("Error!")
 		}
-		
-		
+
+
 		renderAllTriangles();
 	  } catch (error) {
 		console.error('Error parsing JSON:', error);
-		
+
 	  }
 	}
-	
-	
-	
+
+  window.copyRectangleArea = copyRectangleArea;
+  window.selectButtonHandler = selectButtonHandler;
   window.load = load;
   window.save = save;
   window.copy = copy;
