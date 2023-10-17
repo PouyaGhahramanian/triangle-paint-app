@@ -199,6 +199,20 @@
   mvMatrix = lookAt([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
 
   const canvas = document.getElementById('paintCanvas');
+
+  function resizeCanvas() {
+      // Set the canvas's internal resolution to match its display size
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+  }
+
+  // Call the function once to set the initial size
+  resizeCanvas();
+
+  // Optionally, add an event listener to resize the canvas when the window is resized
+  window.addEventListener('resize', resizeCanvas);
+
+
   const gl = canvas.getContext('webgl');
   const ctx = canvas.getContext('2d');
   gl.enable(gl.DEPTH_TEST);

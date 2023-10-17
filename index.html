@@ -12,6 +12,13 @@
 <body>
 
   <div class="container">
+    <div id="leftPanel" class="side-panel">
+      <div id="saveLoad" class="file-panel">
+        <h2>Files</h2>
+      <!-- Save and Load buttons with icons -->
+      <button id="saveButton" onclick="save()" class="tool-button"><i class="fas fa-save"></i></button>
+      <button id="loadButton" onclick="load()" class="tool-button"><i class="fas fa-upload"></i></button>
+    </div>
     <div id="colorPicker" class="side-panel">
         <h2>Colors</h2>
         <!-- Color buttons with icons -->
@@ -22,22 +29,20 @@
         <button onclick="changeColor([0.0, 1.0, 1.0, 1.0])" class="color-button cyan"></button>
         <button onclick="changeColor([1.0, 0.0, 1.0, 1.0])" class="color-button magenta"></button>
     </div>
-
+  </div>
     <canvas id="paintCanvas" width="900" height="900"></canvas>
 
     <div id="toolPicker" class="side-panel">
         <div class="tool-section">
             <h2>Tools</h2>
-            <button id = "undoBotton" onclick="undo()" class="tool-button"><i class="fas fa-undo"></i></button>
-            <button id = "redoBotton" onclick="redo()" class="tool-button"><i class="fas fa-redo"></i></button>
-            <button id = "eraseButton" onclick="eraseTrigger(); setActiveButton('eraseButton');" class="tool-button"><i class="fas fa-eraser"></i></button>
-            <button id = "zoomInButton" onclick="zoomTrigger(); setActiveButton('zoomInButton');" class="tool-button"><i class="fas fa-search-plus"></i></button>
-            <button id = "ZoomOutBotton" onclick="zoomTriggerOff()" class="tool-button"><i class="fas fa-search-minus"></i></button>
-            <button id = "selectButton" onclick="selectButtonHandler()" class="tool-button"><i class="fas fa-mouse-pointer"></i></button>
-            <button id = "brushButton" onclick="continueDrawing(); setActiveButton('brushButton');" class="tool-button active"><i class="fas fa-paint-brush"></i></button>
-            <button id = "copyButton" onclick="copyRectangleArea()" class="tool-button"><i class="fas fa-copy"></i></button>
-      			<button id = "saveButton" onclick="save()" class="tool-button"></i>SAVE</button>
-      			<button id = "loadButton" onclick="load()" class="tool-button"></i>LOAD</button>
+            <button id="undoBotton" onclick="undo()" class="tool-button"><i class="fas fa-undo"></i></button>
+            <button id="redoBotton" onclick="redo()" class="tool-button"><i class="fas fa-redo"></i></button>
+            <button id="eraseButton" onclick="eraseTrigger(); setActiveButton('eraseButton');" class="tool-button"><i class="fas fa-eraser"></i></button>
+            <button id="zoomInButton" onclick="zoomTrigger(); setActiveButton('zoomInButton');" class="tool-button"><i class="fas fa-search-plus"></i></button>
+            <button id="ZoomOutBotton" onclick="zoomTriggerOff()" class="tool-button"><i class="fas fa-search-minus"></i></button>
+            <button id="selectButton" onclick="selectButtonHandler()" class="tool-button"><i class="fas fa-mouse-pointer"></i></button>
+            <button id="brushButton" onclick="continueDrawing(); setActiveButton('brushButton');" class="tool-button active"><i class="fas fa-paint-brush"></i></button>
+            <button id="copyButton" onclick="copyRectangleArea()" class="tool-button"><i class="fas fa-copy"></i></button>
         </div>
 
         <!-- Layer Management UI -->
